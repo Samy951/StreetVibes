@@ -1,61 +1,36 @@
-import { TailwindIndicator } from "@/components/utils/tailwind-indicator";
-import { FloatingLegalFooter } from "@/features/legal/floating-legal-footer";
-import { NextTopLoader } from "@/features/page/next-top-loader";
-import { getServerUrl } from "@/lib/server-url";
-import { cn } from "@/lib/utils";
-import { SiteConfig } from "@/site-config";
-import type { LayoutParams } from "@/types/next";
-import { GeistMono } from "geist/font/mono";
-import { GeistSans } from "geist/font/sans";
+import Footer from "@/components/layout/Footer";
+import Header from "@/components/layout/Header";
+import { NextAuthProvider } from "@/components/providers/session-provider";
+import { getSession } from "@/lib/auth/helpers";
+import "@/styles/globals.css";
 import type { Metadata } from "next";
-import { Space_Grotesk } from "next/font/google";
-import { NuqsAdapter } from "nuqs/adapters/next/app";
-import type { ReactNode } from "react";
-import "./globals.css";
-import { Providers } from "./providers";
+import { Inter } from "next/font/google";
+import type { PropsWithChildren } from "react";
+import { Toaster } from "sonner";
+
+// Polices
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: SiteConfig.title,
-  description: SiteConfig.description,
-  metadataBase: new URL(getServerUrl()),
+  title: "StreetVibes - Hoodies & Sweatshirts",
+  description: "Confort et élégance à chaque instant.",
 };
 
-const CaptionFont = Space_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-caption",
-});
+export default async function RootLayout({ children }: PropsWithChildren) {
+  const session = await getSession();
 
-export default function RootLayout({
-  children,
-  modal,
-}: LayoutParams & { modal?: ReactNode }) {
   return (
-    <>
-      <html lang="en" className="h-full" suppressHydrationWarning>
-        <body
-          suppressHydrationWarning
-          className={cn(
-            "h-full bg-background font-sans antialiased",
-            GeistMono.variable,
-            GeistSans.variable,
-            CaptionFont.variable,
-          )}
-        >
-          <NuqsAdapter>
-            <Providers>
-              <NextTopLoader
-                delay={100}
-                showSpinner={false}
-                color="hsl(var(--primary))"
-              />
-              {children}
-              {modal}
-              <TailwindIndicator />
-              <FloatingLegalFooter />
-            </Providers>
-          </NuqsAdapter>
-        </body>
-      </html>
-    </>
+    <html lang="fr" className="h-full">
+      <body className={`${inter.className} h-full`}>
+        <NextAuthProvider>
+          <div className="flex flex-col min-h-screen">
+            <Header session={session} />
+            {children}
+            <Footer />
+          </div>
+          <Toaster position="top-center" />
+        </NextAuthProvider>
+      </body>
+    </html>
   );
 }
