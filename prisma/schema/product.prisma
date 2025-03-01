@@ -1,0 +1,247 @@
+// Product related models for e-commerce
+// All models are linked to products, categories, and orders
+
+model Product {
+  id             String         @id @default(nanoid(11))
+  slug           String         @unique @default(nanoid(6))
+  name           String
+  description    String         @db.Text
+  price          Float
+  compareAtPrice Float? // Prix original pour afficher une réduction
+  images         ProductImage[]
+
+  // Stock and variants
+  sku    String?
+  stock  Int     @default(0)
+  sizes  Size[] // Relation avec les tailles disponibles
+  colors Color[] // Relation avec les couleurs disponibles
+
+  // Relations
+  categoryId  String?
+  category    Category?           @relation(fields: [categoryId], references: [id])
+  collections CollectionProduct[]
+  orderItems  OrderItem[]
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  CartItem  CartItem[]
+
+  @@index([categoryId])
+  @@index([slug])
+}
+
+model ProductImage {
+  id       String  @id @default(nanoid(11))
+  url      String
+  alt      String?
+  position Int     @default(0)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+}
+
+model Size {
+  id          String  @id @default(nanoid(11))
+  name        String // S, M, L, XL, etc.
+  description String?
+
+  products   Product[]
+  orderItems OrderItem[]
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  CartItem  CartItem[]
+}
+
+model Color {
+  id      String @id @default(nanoid(11))
+  name    String // Nom de la couleur
+  hexCode String // Code hexadécimal
+
+  products   Product[]
+  orderItems OrderItem[]
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  CartItem  CartItem[]
+}
+
+model Category {
+  id          String  @id @default(nanoid(11))
+  slug        String  @unique @default(nanoid(6))
+  name        String
+  description String? @db.Text
+  image       String?
+
+  products Product[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slug])
+}
+
+model Collection {
+  id          String  @id @default(nanoid(11))
+  slug        String  @unique @default(nanoid(6))
+  name        String
+  description String? @db.Text
+  image       String?
+
+  products CollectionProduct[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slug])
+}
+
+model CollectionProduct {
+  id String @id @default(nanoid(11))
+
+  collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  position Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([collectionId])
+  @@index([productId])
+}
+
+model Order {
+  id          String @id @default(nanoid(11))
+  orderNumber String @unique
+
+  // Client info
+  userId    String?
+  user      User?   @relation(fields: [userId], references: [id])
+  email     String
+  firstName String
+  lastName  String
+  phone     String?
+
+  // Shipping info
+  shippingAddress String
+  shippingCity    String
+  shippingState   String
+  shippingZip     String
+  shippingCountry String
+
+  // Billing info may be different
+  billingAddress String?
+  billingCity    String?
+  billingState   String?
+  billingZip     String?
+  billingCountry String?
+
+  // Order details
+  status   OrderStatus @default(PENDING)
+  subtotal Float
+  tax      Float
+  shipping Float
+  discount Float       @default(0)
+  total    Float
+
+  // Payment info
+  paymentMethod String?
+  paymentId     String? // ID de la transaction Stripe
+
+  // Relations
+  items OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([orderNumber])
+}
+
+model OrderItem {
+  id String @id @default(nanoid(11))
+
+  // Product details at time of order
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  name      String // Store product name at time of order
+  price     Float // Store price at time of order
+  quantity  Int
+
+  // Variants selected
+  sizeId  String?
+  size    Size?   @relation(fields: [sizeId], references: [id])
+  colorId String?
+  color   Color?  @relation(fields: [colorId], references: [id])
+
+  // Relations
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+  @@index([orderId])
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+model Cart {
+  id String @id @default(nanoid(11))
+
+  // User info
+  userId    String? @unique
+  user      User?   @relation(fields: [userId], references: [id])
+  sessionId String? @unique // Pour les utilisateurs non connectés
+
+  // Relations
+  items CartItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([sessionId])
+}
+
+model CartItem {
+  id String @id @default(nanoid(11))
+
+  // Product info
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+
+  // Variants selected
+  sizeId  String?
+  size    Size?   @relation(fields: [sizeId], references: [id])
+  colorId String?
+  color   Color?  @relation(fields: [colorId], references: [id])
+
+  // Relations
+  cartId String
+  cart   Cart   @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([cartId])
+  @@index([productId])
+}
